@@ -11,39 +11,43 @@
   <div id="app"></div>
 
   <script>
-    // Object.defineProperty()
-    function defineReactive(obj, key, val) {
+    
+    
+
+    function defineReactive(obj, key, val){
       Object.defineProperty(obj, key, {
-        get() {
-          // 读拦截
-          console.log('get', key, val);
+        get(){
+          console.log("get")
           return val
         },
-        set(newVal) {
-          // 写拦截
-          if (newVal !== val) {
-            console.log('set', key, newVal);
-            val = newVal
-
-            // 更新
+        set(newVal){
+          
+          if(newVal != val){
+            val = newVal;
+            console.log("set："+val);
             update()
           }
+
         }
       })
     }
 
-    function update() {
-      app.innerText = obj.foo
+    function update(){
+      app.innerHTML = obj.foo
     }
 
-    const obj = {}
-    defineReactive(obj, 'foo', '')
+    var obj = {};
 
-    obj.foo = new Date().toLocaleTimeString()
+    defineReactive(obj, 'foo', 'foooo')
 
-    setInterval(() => {
-      obj.foo = new Date().toLocaleTimeString()
-    }, 1000);
+    update()
+
+    setTimeout(()=>{
+      obj.foo = "hahahhaha"
+    },2000)
+   
+
+    
   </script>
 </body>
 
