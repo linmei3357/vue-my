@@ -158,23 +158,7 @@ class Compile {
     return node.nodeType === 3 && /\{\{(.*)\}\}/.test(node.textContent)
   }
 
-  // 更新方法
-  update(node, exp, dir) {
-    // 检查是否存在实操函数
-    const fn = this[dir + 'Updater']
-    // 初始化
-    fn && fn(node, this.$vm[exp])
 
-    // 更新
-    new Watcher(this.$vm, exp, function (val) {
-      fn && fn(node, val)
-    })
-  }
-  // 文本实操函数
-  textUpdater(node, val) {
-    // 具体操作
-    node.textContent = val
-  }
 
   // 编译插值文本{{}}, 初始化
   compileText(node) {
@@ -216,4 +200,22 @@ class Compile {
   htmlUpdater(node, val) {
     node.innerHTML = val
   }
+  // 文本实操函数
+  textUpdater(node, val) {
+    // 具体操作
+    node.textContent = val
+  }
+    // 更新方法
+    update(node, exp, dir) {
+      // 检查是否存在实操函数
+      const fn = this[dir + 'Updater']
+      // 初始化
+      fn && fn(node, this.$vm[exp])
+  
+      // 更新
+      new Watcher(this.$vm, exp, function (val) {
+        fn && fn(node, val)
+      })
+    }
+  
 }

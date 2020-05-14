@@ -87,10 +87,12 @@ class Observe{
 
 function defineReactive(obj, key, val){
     observe(val);
-    new Dep(key)
+    const dep = new Dep(key)
     Object.defineProperty(obj, key, {
         get(){
-            
+            //收集依赖
+            Dep.target && dep.addDep(Dep.target)
+
             return val
         },
         set(newVal){
@@ -98,8 +100,9 @@ function defineReactive(obj, key, val){
                 //如果新值是对象，则响应化处理
                 observe(newVal)
                 val = newVal;
-                // update(val)
-                // dep.notify()
+
+                //重新渲染
+                dep.notify()
             }
         }
     })
@@ -117,13 +120,22 @@ function set(obj, key, value){
     defineReactive(obj, key, value)
 }
 
-function update(val){
-    app.innerHTML = val
-}
+
 
 class Watcher{
-    constructor(){
+    constructor(vm, exp, updater){
+        this.$vm = vm;
+        this.$exp = exp;
+        this.updater = updater;
 
+
+        //Watcher和Dep建立关系
+        Dep.target = this;   
+        this.$vm[exp];  //触发get，依赖收集
+        Dep.target = null;
+    }
+    update(){
+        this.updater.call(this.$vm, this.$vm[this.$exp])
     }
 }
 
@@ -136,8 +148,9 @@ class Dep{
         this.deps.push(dep)
     }
     notify(){
-        // Watcher.update()
+       
         this.deps.forEach(dep=>{
+             // dep其实是Watcher的实例
             dep.update()
         })
     }
@@ -148,7 +161,6 @@ class Compiler{
     constructor(el, vm){
         this.$el =  document.querySelector(el);
         this.$vm = vm;
-
        
         this.compile(this.$el)
     }
@@ -177,6 +189,10 @@ class Compiler{
         })
 
     }
+    isDir(attr){
+       return attr.slice(0,2) === "k-"
+    
+    }    
     isElement(node){
         return node.nodeType === 1
     }
@@ -184,13 +200,43 @@ class Compiler{
         return node.nodeType === 3 && /\{\{(.*?)\}\}/.test(node.textContent)
     }
     complieText(node){
-        node.textContent = node.textContent.replace(/\{\{(.*?)\}\}/g, (kw,$1)=>{
-            return this.$vm[$1]
-        })
+        this.update('text', node, RegExp.$1)
+        // node.textContent = node.textContent.replace(/\{\{(.*?)\}\}/g, (kw,$1)=>{
+        //     return this.$vm[$1]
+        // })
     }
     compileElement(node){
         const attrs = node.attributes;
         console.log(attrs)
+        Array.from(attrs).forEach(attr=>{
+            const attrName = attr.name;
+            const exp = attr.value;
+            if(this.isDir(attrName)){
+                const dir = attrName.slice(2);
+                this.update(dir, node, exp)
+            }
+
+        })
+    }
+    textUpdater(node, val){
+        node.textContent = val   //this.$vm[exp];
+
+        // node.textContent = node.textContent.replace(/\{\{(.*?)\}\}/g, (kw,$1)=>{
+        //     return this.$vm[$1]
+        // })
+    }
+    htmlUpdater(node, val){
+        node.innerHTML = val;
+    }
+    update(dir, node, exp){
+        const fn = this[dir+"Updater"];
+
+        fn && fn(node, this.$vm[exp]);
+
+        //绑定watcher  这个回调函数将来在dep.notify() dep.update(val)中调用
+        new Watcher(this.$vm, exp, function(val){
+            fn && fn(node, val)
+        })
     }
 }
 
